@@ -1,0 +1,427 @@
+# docker-compose.local.yml — TESTE EM UMA ÚNICA MÁQUINA
+#
+# Simula os 4 PCs do laboratório em uma única máquina usando portas diferentes.
+# Cada setor usa um offset de porta:
+#   Setor A: 7001, 8001, 8002, 8500, 3001, 9001
+#   Setor B: 7011, 8011, 8012, 8510, 3011, 9011
+#   Setor C: 7021, 8021, 8022, 8520, 3021, 9021
+#   Setor D: 7031, 8031, 8032, 8530, 3031, 9031
+#
+# Como usar:
+#   docker compose -f deploy/docker-compose.local.yml up --build
+#
+# Ver dashboard de um setor (em terminal separado):
+#   docker attach dashboard-A
+#   docker attach dashboard-B
+#   docker attach dashboard-C
+#   docker attach dashboard-D
+#
+# Adicionar drone extra em runtime (exemplo: novo drone no setor A):
+#   docker compose -f deploy/docker-compose.local.yml run --rm \
+#     -e DRONE_ID=drone-A2 -e DRONE_ADDR=0.0.0.0:9002 -e BASE_ADDR=localhost:8001 \
+#     drone-base
+#
+# Simular queda de um setor (exemplo: derruba setor B):
+#   docker compose -f deploy/docker-compose.local.yml stop broker-B base-B drone-B1
+#
+# Restaurar setor derrubado:
+#   docker compose -f deploy/docker-compose.local.yml start broker-B base-B drone-B1
+
+services:
+
+  # ══════════════════════════════════════════════════════
+  # SETOR A  (simula PC 1)
+  # ══════════════════════════════════════════════════════
+
+  broker-A:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.broker
+    container_name: broker-A
+    environment:
+      SECTOR_ID: A
+      BROKER_ADDR: "0.0.0.0:7001"
+      PEER_BASES: "localhost:8011,localhost:8021,localhost:8031"
+    ports:
+      - "7001:7001"
+    restart: unless-stopped
+
+  sensor-A1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-A1
+    network_mode: host
+    environment:
+      SECTOR_ID: A
+      SENSOR_ID: sensor-A1
+      BROKER_ADDR: "localhost:7001"
+      PEER_BROKERS: "localhost:7011,localhost:7021,localhost:7031"
+      INTERVAL_MS: "4000"
+      INITIAL_DELAY_SEC: "60"
+    depends_on:
+      - broker-A
+    restart: unless-stopped
+
+  sensor-A2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-A2
+    network_mode: host
+    environment:
+      SECTOR_ID: A
+      SENSOR_ID: sensor-A2
+      BROKER_ADDR: "localhost:7001"
+      PEER_BROKERS: "localhost:7011,localhost:7021,localhost:7031"
+      INTERVAL_MS: "7000"
+      INITIAL_DELAY_SEC: "60"
+    depends_on:
+      - broker-A
+    restart: unless-stopped
+
+  base-A:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.base
+    container_name: base-A
+    network_mode: host
+    environment:
+      SECTOR_ID: A
+      BASE_ADDR: "0.0.0.0:8001"
+      GOSSIP_ADDR: "0.0.0.0:8002"
+      HB_ADDR: "0.0.0.0:8500"
+      DASH_ADDR: "0.0.0.0:3001"
+      PEER_BASES: "localhost:8011,localhost:8021,localhost:8031"
+      PEER_GOSSIP: "localhost:8012,localhost:8022,localhost:8032"
+      PEER_HB: "localhost:8510,localhost:8520,localhost:8530"
+    restart: unless-stopped
+
+  drone-A1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.drone
+    container_name: drone-A1
+    network_mode: host
+    environment:
+      DRONE_ID: drone-A1
+      SECTOR_ID: A
+      DRONE_ADDR: "0.0.0.0:9001"
+      BASE_ADDR: "localhost:8001"
+      PEER_BASES: "localhost:8011,localhost:8021,localhost:8031"
+      HB_TARGETS: "localhost:8500,localhost:8510,localhost:8520,localhost:8530"
+    depends_on:
+      - base-A
+    restart: unless-stopped
+
+  dashboard-A:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: dashboard-A
+    network_mode: host
+    environment:
+      SECTOR_ID: A
+      BASE_DASH_ADDR: "localhost:3001"
+    depends_on:
+      - base-A
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # ══════════════════════════════════════════════════════
+  # SETOR B  (simula PC 2)
+  # ══════════════════════════════════════════════════════
+
+  broker-B:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.broker
+    container_name: broker-B
+    network_mode: host
+    environment:
+      SECTOR_ID: B
+      BROKER_ADDR: "0.0.0.0:7011"
+      PEER_BASES: "localhost:8001,localhost:8021,localhost:8031"
+    restart: unless-stopped
+
+  sensor-B1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-B1
+    network_mode: host
+    environment:
+      SECTOR_ID: B
+      SENSOR_ID: sensor-B1
+      BROKER_ADDR: "localhost:7011"
+      PEER_BROKERS: "localhost:7001,localhost:7021,localhost:7031"
+      INTERVAL_MS: "3000"
+      INITIAL_DELAY_SEC: "60"
+    depends_on:
+      - broker-B
+    restart: unless-stopped
+
+  sensor-B2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-B2
+    network_mode: host
+    environment:
+      SECTOR_ID: B
+      SENSOR_ID: sensor-B2
+      BROKER_ADDR: "localhost:7011"
+      PEER_BROKERS: "localhost:7001,localhost:7021,localhost:7031"
+      INTERVAL_MS: "9000"
+      INITIAL_DELAY_SEC: "60"
+    depends_on:
+      - broker-B
+    restart: unless-stopped
+
+  base-B:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.base
+    container_name: base-B
+    network_mode: host
+    environment:
+      SECTOR_ID: B
+      BASE_ADDR: "0.0.0.0:8011"
+      GOSSIP_ADDR: "0.0.0.0:8012"
+      HB_ADDR: "0.0.0.0:8510"
+      DASH_ADDR: "0.0.0.0:3011"
+      PEER_BASES: "localhost:8001,localhost:8021,localhost:8031"
+      PEER_GOSSIP: "localhost:8002,localhost:8022,localhost:8032"
+      PEER_HB: "localhost:8500,localhost:8520,localhost:8530"
+    restart: unless-stopped
+
+  drone-B1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.drone
+    container_name: drone-B1
+    network_mode: host
+    environment:
+      DRONE_ID: drone-B1
+      SECTOR_ID: B
+      DRONE_ADDR: "0.0.0.0:9011"
+      BASE_ADDR: "localhost:8011"
+      PEER_BASES: "localhost:8001,localhost:8021,localhost:8031"
+      HB_TARGETS: "localhost:8500,localhost:8510,localhost:8520,localhost:8530"
+    depends_on:
+      - base-B
+    restart: unless-stopped
+
+  dashboard-B:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: dashboard-B
+    network_mode: host
+    environment:
+      SECTOR_ID: B
+      BASE_DASH_ADDR: "localhost:3011"
+    depends_on:
+      - base-B
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # ══════════════════════════════════════════════════════
+  # SETOR C  (simula PC 3)
+  # ══════════════════════════════════════════════════════
+
+  broker-C:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.broker
+    container_name: broker-C
+    network_mode: host
+    environment:
+      SECTOR_ID: C
+      BROKER_ADDR: "0.0.0.0:7021"
+      PEER_BASES: "localhost:8001,localhost:8011,localhost:8031"
+    restart: unless-stopped
+
+  sensor-C1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-C1
+    network_mode: host
+    environment:
+      SECTOR_ID: C
+      SENSOR_ID: sensor-C1
+      BROKER_ADDR: "localhost:7021"
+      PEER_BROKERS: "localhost:7001,localhost:7011,localhost:7031"
+      INTERVAL_MS: "5000"
+      INITIAL_DELAY_SEC: "60"
+    depends_on:
+      - broker-C
+    restart: unless-stopped
+
+  sensor-C2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-C2
+    network_mode: host
+    environment:
+      SECTOR_ID: C
+      SENSOR_ID: sensor-C2
+      BROKER_ADDR: "localhost:7021"
+      PEER_BROKERS: "localhost:7001,localhost:7011,localhost:7031"
+      INTERVAL_MS: "6000"
+      INITIAL_DELAY_SEC: "60"
+    depends_on:
+      - broker-C
+    restart: unless-stopped
+
+  base-C:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.base
+    container_name: base-C
+    network_mode: host
+    environment:
+      SECTOR_ID: C
+      BASE_ADDR: "0.0.0.0:8021"
+      GOSSIP_ADDR: "0.0.0.0:8022"
+      HB_ADDR: "0.0.0.0:8520"
+      DASH_ADDR: "0.0.0.0:3021"
+      PEER_BASES: "localhost:8001,localhost:8011,localhost:8031"
+      PEER_GOSSIP: "localhost:8002,localhost:8012,localhost:8032"
+      PEER_HB: "localhost:8500,localhost:8510,localhost:8530"
+    restart: unless-stopped
+
+  drone-C1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.drone
+    container_name: drone-C1
+    network_mode: host
+    environment:
+      DRONE_ID: drone-C1
+      SECTOR_ID: C
+      DRONE_ADDR: "0.0.0.0:9021"
+      BASE_ADDR: "localhost:8021"
+      PEER_BASES: "localhost:8001,localhost:8011,localhost:8031"
+      HB_TARGETS: "localhost:8500,localhost:8510,localhost:8520,localhost:8530"
+    depends_on:
+      - base-C
+    restart: unless-stopped
+
+  dashboard-C:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: dashboard-C
+    network_mode: host
+    environment:
+      SECTOR_ID: C
+      BASE_DASH_ADDR: "localhost:3021"
+    depends_on:
+      - base-C
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # ══════════════════════════════════════════════════════
+  # SETOR D  (simula PC 4)
+  # ══════════════════════════════════════════════════════
+
+  broker-D:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.broker
+    container_name: broker-D
+    network_mode: host
+    environment:
+      SECTOR_ID: D
+      BROKER_ADDR: "0.0.0.0:7031"
+      PEER_BASES: "localhost:8001,localhost:8011,localhost:8021"
+    restart: unless-stopped
+
+  sensor-D1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-D1
+    network_mode: host
+    environment:
+      SECTOR_ID: D
+      SENSOR_ID: sensor-D1
+      BROKER_ADDR: "localhost:7031"
+      PEER_BROKERS: "localhost:7001,localhost:7011,localhost:7021"
+      INTERVAL_MS: "4000"
+      INITIAL_DELAY_SEC: "60"
+    depends_on:
+      - broker-D
+    restart: unless-stopped
+
+  sensor-D2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-D2
+    network_mode: host
+    environment:
+      SECTOR_ID: D
+      SENSOR_ID: sensor-D2
+      BROKER_ADDR: "localhost:7031"
+      PEER_BROKERS: "localhost:7001,localhost:7011,localhost:7021"
+      INTERVAL_MS: "8000"
+      INITIAL_DELAY_SEC: "60"
+    depends_on:
+      - broker-D
+    restart: unless-stopped
+
+  base-D:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.base
+    container_name: base-D
+    network_mode: host
+    environment:
+      SECTOR_ID: D
+      BASE_ADDR: "0.0.0.0:8031"
+      GOSSIP_ADDR: "0.0.0.0:8032"
+      HB_ADDR: "0.0.0.0:8530"
+      DASH_ADDR: "0.0.0.0:3031"
+      PEER_BASES: "localhost:8001,localhost:8011,localhost:8021"
+      PEER_GOSSIP: "localhost:8002,localhost:8012,localhost:8022"
+      PEER_HB: "localhost:8500,localhost:8510,localhost:8520"
+    restart: unless-stopped
+
+  drone-D1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.drone
+    container_name: drone-D1
+    network_mode: host
+    environment:
+      DRONE_ID: drone-D1
+      SECTOR_ID: D
+      DRONE_ADDR: "0.0.0.0:9031"
+      BASE_ADDR: "localhost:8031"
+      PEER_BASES: "localhost:8001,localhost:8011,localhost:8021"
+      HB_TARGETS: "localhost:8500,localhost:8510,localhost:8520,localhost:8530"
+    depends_on:
+      - base-D
+    restart: unless-stopped
+
+  dashboard-D:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: dashboard-D
+    network_mode: host
+    environment:
+      SECTOR_ID: D
+      BASE_DASH_ADDR: "localhost:3031"
+    depends_on:
+      - base-D
+    stdin_open: true
+    tty: true
+    restart: unless-stopped

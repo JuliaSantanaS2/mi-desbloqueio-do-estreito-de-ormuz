@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+
+  broker-b:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.broker
+    container_name: broker-b
+    environment:
+      SECTOR_ID: B
+      BROKER_ADDR: "0.0.0.0:7001"
+      PEER_BASES: "${M1_IP}:8001"
+    ports:
+      - "7001:7001"
+    restart: unless-stopped
+
+  sensor-b1:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-b1
+    environment:
+      SECTOR_ID: B
+      SENSOR_ID: sensor-B1
+      BROKER_ADDR: "broker-b:7001"
+      INTERVAL_MS: "3000"
+      INITIAL_DELAY_SEC: "10"
+    depends_on:
+      - broker-b
+    restart: unless-stopped
+
+  base-b:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.base
+    container_name: base-b
+    environment:
+      SECTOR_ID: B
+      BASE_ADDR: "0.0.0.0:8001"
+      GOSSIP_ADDR: "0.0.0.0:8002"
+      HB_ADDR: "0.0.0.0:8500"
+      DASH_ADDR: "0.0.0.0:3001"
+      PEER_BASES: "${M1_IP}:8001"
+      PEER_GOSSIP: "${M1_IP}:8002"
+      PEER_HB: "${M1_IP}:8500"
+    ports:
+      - "8001:8001"
+      - "8002:8002"
+      - "8500:8500/udp"
+      - "3001:3001"
+    restart: unless-stopped
+
+  drone-b1:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.drone
+    container_name: drone-b1
+    environment:
+      DRONE_ID: drone-B1
+      SECTOR_ID: B
+      DRONE_ADDR: "0.0.0.0:9001"
+      BASE_ADDR: "base-b:8001"
+      PEER_BASES: "${M1_IP}:8001"
+      HB_TARGETS: "base-b:8500,${M1_IP}:8500"
+    ports:
+      - "9001:9001"
+    depends_on:
+      - base-b
+    restart: unless-stopped
+
+  dashboard-b:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: dashboard-b
+    environment:
+      SECTOR_ID: B
+      BASE_DASH_ADDR: "base-b:3001"
+    depends_on:
+      - base-b
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  webdash:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.webdash
+    container_name: webdash
+    environment:
+      HTTP_ADDR: ":8080"
+      BASE_ADDRS: "A=${M1_IP}:3001,B=base-b:3001"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - base-b
+    restart: unless-stopped

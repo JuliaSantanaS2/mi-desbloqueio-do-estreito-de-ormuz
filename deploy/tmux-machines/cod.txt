@@ -1,0 +1,10 @@
+chmod +x *.sh
+./add-drone-auto.sh
+
+
+
+./limpar.sh
+./run.sh 2
+
+
+docker kill  tmux-machines-base-1

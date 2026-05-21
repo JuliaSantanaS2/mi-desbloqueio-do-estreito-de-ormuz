@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Estreito de Ormuz — Drones</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080c14;--s1:#0d1321;--s2:#111827;--s3:#1a2235;--b1:#1e2d45;--b2:#243350;
+--cy:#00d4ff;--gr:#00e676;--ye:#ffd740;--re:#ff5252;--pu:#ea80fc;
+--tx:#e2e8f0;--td:#64748b;--tm:#334155;--fn:'Inter',sans-serif;--mo:'JetBrains Mono',monospace}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:13px}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;
+  background:linear-gradient(90deg,#0a1628,#0d1b38);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:100}
+.logo h1{font-size:14px;font-weight:700;color:var(--cy)}
+.logo p{font-size:10px;color:var(--td)}
+.hright{display:flex;align-items:center;gap:14px}
+#wsbadge{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mo);
+  padding:3px 9px;border-radius:20px;border:1px solid var(--b2);background:var(--s2)}
+#wsdot{width:7px;height:7px;border-radius:50%;background:var(--td);transition:background .3s}
+#wsdot.on{background:var(--gr);box-shadow:0 0 5px var(--gr)}
+#wsdot.off{background:var(--re)}
+#clock{font-family:var(--mo);font-size:12px;color:var(--td)}
+
+/* STATS */
+.stats{display:flex;gap:10px;padding:8px 20px;background:var(--s1);border-bottom:1px solid var(--b1);overflow-x:auto}
+.sc{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:9px;
+  background:var(--s2);border:1px solid var(--b1);min-width:110px;flex-shrink:0}
+.sv{font-size:19px;font-weight:700;font-family:var(--mo);line-height:1}
+.sl{font-size:9px;color:var(--td);margin-top:1px;text-transform:uppercase;letter-spacing:.4px}
+.cy{color:var(--cy)}.gr{color:var(--gr)}.ye{color:var(--ye)}.re{color:var(--re)}
+
+/* TABS */
+.tabs{display:flex;padding:0 20px;background:var(--s1);border-bottom:1px solid var(--b1)}
+.tab{padding:9px 18px;font-size:12px;font-weight:500;color:var(--td);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--cy);border-bottom-color:var(--cy)}
+.tab:hover{color:var(--tx)}
+
+/* LAYOUT UNIFICADO (Filas Fixas na Direita) */
+.main-layout {
+    display: grid;
+    grid-template-columns: 1fr 520px 280px; 
+    gap: 16px;
+    padding: 16px 20px;
+    height: calc(100vh - 120px);
+    overflow: hidden; 
+}
+.page { display: none; height: 100%; }
+.page.active { display: block; }
+.sidebar { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+.sidebar.row { flex-direction: row; } 
+.content { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+    gap: 12px; 
+    align-content: start; 
+    overflow-y: auto; 
+    padding-right: 5px; 
+    height: 100%;
+}
+.sidebar-panel { 
+    background: var(--s1); 
+    border: 1px solid var(--b1); 
+    border-radius: 12px; 
+    display: flex; 
+    flex-direction: column; 
+    flex: 1; 
+    overflow: hidden; 
+}
+.qlist { flex: 1; overflow-y: auto; padding: 8px; }
+
+/* CARDS E ELEMENTOS COMUNS */
+.ph{padding:9px 12px;background:linear-gradient(90deg,var(--s2),var(--s3));border-bottom:1px solid var(--b1);
+  font-size:11px;font-weight:600;color:var(--cy);display:flex;align-items:center;justify-content:space-between;gap:6px}
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:12px;overflow:hidden}
+.card.online{border-color:var(--b2)}.card.offline{border-color:#c62828;opacity:.75}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;
+  background:linear-gradient(90deg,var(--s2),var(--s3));border-bottom:1px solid var(--b1)}
+.cbadge{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.A, .a{background:linear-gradient(135deg,#0039a6,#0057e7);color:#fff}
+.B, .b{background:linear-gradient(135deg,#005000,#007a00);color:#fff}
+.C, .c{background:linear-gradient(135deg,#8b0000,#cc0000);color:#fff}
+.D, .d{background:linear-gradient(135deg,#4a0072,#7b00d4);color:#fff}
+.ctitle{display:flex;align-items:center;gap:8px}
+.cname{font-weight:600;font-size:13px}.csub{font-size:10px;color:var(--td)}
+.cst{font-size:10px;font-weight:600;font-family:var(--mo);padding:2px 7px;border-radius:10px;text-transform:uppercase}
+.cst.online{background:#003322;color:var(--gr);border:1px solid #00e67633}
+.cst.offline{background:#2a0a0a;color:var(--re);border:1px solid #ff525233}
+.cbody{padding:11px 13px;display:flex;flex-direction:column;gap:9px}
+.st{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--td);margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.st::after{content:'';flex:1;height:1px;background:var(--b1)}
+
+/* SENSOR PILLS */
+.sensor-row{display:flex;flex-wrap:wrap;gap:5px}
+.spill{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:7px;font-size:10px;font-family:var(--mo);border:1px solid var(--b1);background:var(--s2)}
+.spill.alive{color:var(--gr);border-color:#00e67633}
+.spill.dead{color:var(--re);border-color:#ff525233;opacity:.7}
+.sdot{width:5px;height:5px;border-radius:50%}
+.alive .sdot{background:var(--gr);animation:pg 2s infinite}
+.dead .sdot{background:var(--re)}
+@keyframes pg{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* DRONE CARD */
+.dcard{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;background:var(--s2);border:1px solid var(--b1);margin-bottom:6px;}
+.dcard.BUSY{background:#1a1200;border-color:#ffd74033}
+.dcard.RETURNING{background:#00112a;border-color:#00d4ff33}
+.dcard.LOST{background:#1a0505;border-color:#ff525233;opacity:.8}
+.dcard.IDLE{border-color:#00e67622}
+.davt{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;flex-shrink:0}
+.IDLE .davt{background:#002a1a}.BUSY .davt{background:#2a1a00}.RETURNING .davt{background:#001a33}.LOST .davt{background:#2a0808}
+.dpulse{position:absolute;bottom:2px;right:2px;width:7px;height:7px;border-radius:50%}
+.IDLE .dpulse{background:var(--gr);animation:pg 2s infinite}
+.BUSY .dpulse{background:var(--ye);animation:py 1s infinite}
+.RETURNING .dpulse{background:#00d4ff;animation:pb 1s infinite}
+.LOST .dpulse{background:var(--re)}
+@keyframes py{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pb{0%,100%{opacity:1}50%{opacity:.3}}
+.dinfo{flex:1;min-width:0}
+.dname{font-family:var(--mo);font-weight:500;font-size:12px}
+.dbase{font-size:10px;color:var(--td)}
+.dmission{font-size:10px;color:var(--td);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.dmission.active{color:var(--ye)}
+.dmission.returning{color:#00d4ff}
+.dst{font-size:10px;font-weight:600;font-family:var(--mo);padding:2px 7px;border-radius:7px}
+.IDLE .dst{background:#002a1a;color:var(--gr)}
+.BUSY .dst{background:#2a1a00;color:var(--ye)}
+.RETURNING .dst{background:#001a33;color:#00d4ff}
+.LOST .dst{background:#2a0808;color:var(--re)}
+
+/* BADGES ATUALIZADAS (CRITICAL/FALHA) */
+.badge{padding:1px 5px;border-radius:4px;font-size:9px;font-weight:600}
+.badge.CRITICAL{background:#2a0a0a;color:var(--re)}
+.badge.NORMAL{background:#1a1500;color:var(--ye)}
+.badge.FALHA{background:#3a0000;color:var(--re);border:1px solid #ff525255} 
+.badge.PENDING{background:#001a2a;color:var(--cy)}
+.badge.LOCKED{background:#1a0a2a;color:var(--pu)}
+.badge.ASSIGNED{background:#002a10;color:var(--gr)}
+
+/* FILAS */
+.qi{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:7px;margin-bottom:3px;background:var(--s2);border:1px solid var(--b1);font-size:10px}
+.qi.cr{border-color:#ff525233;background:#1a0505}
+.qsec{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0}
+.qdesc{flex:1;color:var(--td);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qts{font-family:var(--mo);font-size:9px;color:var(--tm)}
+.empty{padding:8px;color:var(--tm);font-size:10px;text-align:center;font-style:italic}
+button.clear-btn{padding:2px 8px;border-radius:6px;border:1px solid var(--b2);background:var(--s2);color:var(--tm);font-size:10px;cursor:pointer;white-space:nowrap}
+button.clear-btn:hover{background:var(--b4)}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--s1)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+footer{text-align:center;padding:10px;font-size:10px;color:var(--tm);border-top:1px solid var(--b1)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <h1>&#128225; ESTREITO DE ORMUZ &mdash; SISTEMA DE DRONES</h1>
+    <p>4 setores &middot; 4 bases &middot; 4 drones &middot; 8 sensores &middot; tempo real</p>
+  </div>
+  <div class="hright">
+    <div id="wsbadge"><span id="wsdot"></span><span id="wslbl">Conectando...</span></div>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+<div class="stats">
+  <div class="sc"><span style="font-size:16px">&#128641;</span><div><div class="sv cy" id="st-tot">--</div><div class="sl">Drones</div></div></div>
+  <div class="sc"><span style="font-size:16px">&#9989;</span><div><div class="sv gr" id="st-idl">--</div><div class="sl">Disponíveis</div></div></div>
+  <div class="sc"><span style="font-size:16px">&#9889;</span><div><div class="sv ye" id="st-bsy">--</div><div class="sl">Em missão</div></div></div>
+  <div class="sc"><span style="font-size:16px">&#10060;</span><div><div class="sv re" id="st-lst">--</div><div class="sl">Perdidos</div></div></div>
+  <div class="sc"><span style="font-size:16px">&#128203;</span><div><div class="sv cy" id="st-q">--</div><div class="sl">Pendentes</div></div></div>
+</div>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('sensors',this)">&#128225; Áreas dos Sensores</div>
+  <div class="tab" onclick="showTab('bases',this)">&#128640; Bases dos Drones</div>
+</div>
+
+<div class="main-layout">
+  <!-- COLUNA DA ESQUERDA: Alterna entre Sensores e Bases -->
+  <div class="tab-content">
+    <div id="page-sensors" class="page active">
+      <div class="content" id="sensor-grid"></div>
+    </div>
+    <div id="page-bases" class="page">
+      <div class="content" id="base-grid"></div>
+    </div>
+  </div>
+  
+  <!-- COLUNAS DA DIREITA: Fixas (Não desaparecem ao trocar de aba) -->
+  <div class="sidebar row">
+    <div class="sidebar-panel">
+      <div class="ph">&#128203; Atendendo</div>
+      <div id="assigned-queue" class="qlist"><div class="empty">Aguardando...</div></div>
+    </div>
+    <div class="sidebar-panel">
+      <div class="ph">
+          &#128203; Pendentes 
+          <button class="clear-btn" onclick="clearRequests()">Limpar</button>
+      </div>
+      <div id="pending-queue" class="qlist"><div class="empty">Aguardando...</div></div>
+    </div>
+  </div>
+  
+  <div class="sidebar">
+    <div class="sidebar-panel">
+      <div class="ph">
+        &#128640; Status dos Drones
+        <button class="clear-btn" onclick="clearLostDrones()">Limpar Offline</button>
+      </div>
+      <div id="drone-sidebar" class="qlist" style="display:flex;flex-direction:column;gap:6px">
+        <div class="empty">Aguardando drones...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>PBL 2 &mdash; Sistemas Distribuídos &middot; Go + WebSocket &middot; Dados somente em memória (sem persistência)</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+# PC 2 — Setor B
+# Substitua PC1_IP, PC3_IP, PC4_IP pelos IPs reais.
+
+services:
+
+  broker-B:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.broker
+    container_name: broker-B
+    environment:
+      SECTOR_ID: B
+      BROKER_ADDR: "0.0.0.0:7001"
+      PEER_BASES: "PC1_IP:8001,PC3_IP:8001,PC4_IP:8001"
+    ports:
+      - "7001:7001"
+    restart: unless-stopped
+
+  sensor-B1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-B1
+    environment:
+      SECTOR_ID: B
+      SENSOR_ID: sensor-B1
+      BROKER_ADDR: "broker-B:7001"
+      INTERVAL: "3"
+    depends_on:
+      - broker-B
+    restart: unless-stopped
+
+  sensor-B2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-B2
+    environment:
+      SECTOR_ID: B
+      SENSOR_ID: sensor-B2
+      BROKER_ADDR: "broker-B:7001"
+      INTERVAL: "7"
+    depends_on:
+      - broker-B
+    restart: unless-stopped
+
+  base-B:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.base
+    container_name: base-B
+    environment:
+      SECTOR_ID: B
+      BASE_ADDR: "0.0.0.0:8001"
+      GOSSIP_ADDR: "0.0.0.0:8002"
+      HB_ADDR: "0.0.0.0:8500"
+      DASH_ADDR: "0.0.0.0:3001"
+      PEER_BASES: "PC1_IP:8001,PC3_IP:8001,PC4_IP:8001"
+      PEER_GOSSIP: "PC1_IP:8002,PC3_IP:8002,PC4_IP:8002"
+      PEER_HB: "PC1_IP:8500,PC3_IP:8500,PC4_IP:8500"
+    ports:
+      - "8001:8001"
+      - "8002:8002"
+      - "8500:8500/udp"
+      - "3001:3001"
+    restart: unless-stopped
+
+  drone-B1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.drone
+    container_name: drone-B1
+    environment:
+      DRONE_ID: drone-B1
+      SECTOR_ID: B
+      DRONE_ADDR: "0.0.0.0:9001"
+      BASE_ADDR: "base-B:8001"
+      PEER_BASES: "PC1_IP:8001,PC3_IP:8001,PC4_IP:8001"
+      HB_TARGETS: "base-B:8500,PC1_IP:8500,PC3_IP:8500,PC4_IP:8500"
+    ports:
+      - "9001:9001"
+    depends_on:
+      - base-B
+    restart: unless-stopped
+
+  dashboard-B:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: dashboard-B
+    environment:
+      SECTOR_ID: B
+      BASE_DASH_ADDR: "base-B:3001"
+    depends_on:
+      - base-B
+    stdin_open: true
+    tty: true
+    restart: unless-stopped

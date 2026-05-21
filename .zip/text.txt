@@ -1,0 +1,2 @@
+como funciona o mutex?
+oq é handlers

@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  broker:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.broker
+    network_mode: "host"
+    environment:
+      SECTOR_ID: ${SECTOR_ID}
+      BROKER_ADDR: "0.0.0.0:7101"
+      BASE_ADDR: "127.0.0.1:8101"
+      PEER_BASES: ${PEER_BASES}
+      HB_TARGETS: "127.0.0.1:8550"
+    restart: unless-stopped
+
+  sensor:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.sensor
+    network_mode: "host"
+    environment:
+      SECTOR_ID: ${SECTOR_ID}
+      SENSOR_ID: "sensor-${SECTOR_ID}1"
+      BROKER_ADDR: "127.0.0.1:7101"
+      INTERVAL_MS: "3000"
+      HB_TARGETS: "127.0.0.1:8550"
+    depends_on:
+      - broker
+    restart: unless-stopped
+
+  base:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.base
+    network_mode: "host"
+    environment:
+      SECTOR_ID: ${SECTOR_ID}
+      BASE_ADDR: "0.0.0.0:8101"
+      GOSSIP_ADDR: "0.0.0.0:8102"
+      HB_ADDR: "0.0.0.0:8550"
+      DASH_ADDR: "0.0.0.0:3101"
+      BASE_HOST: "${LOCAL_IP}:8101"
+      GOSSIP_HOST: "${LOCAL_IP}:8102"
+      PEER_BASES: ${PEER_BASES}
+      PEER_GOSSIP: ${PEER_GOSSIP}
+      PEER_HB: ${PEER_HB}
+    restart: unless-stopped
+
+  drone:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.drone
+    network_mode: "host"
+    environment:
+      DRONE_ID: "drone-${SECTOR_ID}1"
+      SECTOR_ID: ${SECTOR_ID}
+      DRONE_ADDR: "0.0.0.0:9101"
+      DRONE_HOST: "${LOCAL_IP}:9101"
+      BASE_ADDR: "127.0.0.1:8101"
+      PEER_BASES: ${PEER_BASES} # <----- ESSA É A LINHA MÁGICA QUE FALTAVA
+      HB_TARGETS: "127.0.0.1:8550,${PEER_HB}"
+    depends_on:
+      - base
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dashboard
+    network_mode: "host"
+    environment:
+      SECTOR_ID: "${SECTOR_ID}"
+      BASE_DASH_ADDR: "127.0.0.1:3101"
+    tty: true
+    stdin_open: true
+
+  webdash:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.webdash
+    network_mode: "host"
+    environment:
+      HTTP_ADDR: "0.0.0.0:8180"
+      BASE_ADDRS: "${WEBDASH_BASES}"
+      BASE_TCP_ADDRS: "${WEBDASH_TCP_BASES}" 
+    restart: unless-stopped
+
+  

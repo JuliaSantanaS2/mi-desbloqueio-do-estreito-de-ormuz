@@ -1,0 +1,98 @@
+# PC 3 — Setor C
+# Substitua PC1_IP, PC2_IP, PC4_IP pelos IPs reais.
+
+services:
+
+  broker-C:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.broker
+    container_name: broker-C
+    environment:
+      SECTOR_ID: C
+      BROKER_ADDR: "0.0.0.0:7001"
+      PEER_BASES: "PC1_IP:8001,PC2_IP:8001,PC4_IP:8001"
+    ports:
+      - "7001:7001"
+    restart: unless-stopped
+
+  sensor-C1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-C1
+    environment:
+      SECTOR_ID: C
+      SENSOR_ID: sensor-C1
+      BROKER_ADDR: "broker-C:7001"
+      INTERVAL: "5"
+    depends_on:
+      - broker-C
+    restart: unless-stopped
+
+  sensor-C2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensor
+    container_name: sensor-C2
+    environment:
+      SECTOR_ID: C
+      SENSOR_ID: sensor-C2
+      BROKER_ADDR: "broker-C:7001"
+      INTERVAL: "8"
+    depends_on:
+      - broker-C
+    restart: unless-stopped
+
+  base-C:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.base
+    container_name: base-C
+    environment:
+      SECTOR_ID: C
+      BASE_ADDR: "0.0.0.0:8001"
+      GOSSIP_ADDR: "0.0.0.0:8002"
+      HB_ADDR: "0.0.0.0:8500"
+      DASH_ADDR: "0.0.0.0:3001"
+      PEER_BASES: "PC1_IP:8001,PC2_IP:8001,PC4_IP:8001"
+      PEER_GOSSIP: "PC1_IP:8002,PC2_IP:8002,PC4_IP:8002"
+      PEER_HB: "PC1_IP:8500,PC2_IP:8500,PC4_IP:8500"
+    ports:
+      - "8001:8001"
+      - "8002:8002"
+      - "8500:8500/udp"
+      - "3001:3001"
+    restart: unless-stopped
+
+  drone-C1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.drone
+    container_name: drone-C1
+    environment:
+      DRONE_ID: drone-C1
+      SECTOR_ID: C
+      DRONE_ADDR: "0.0.0.0:9001"
+      BASE_ADDR: "base-C:8001"
+      PEER_BASES: "PC1_IP:8001,PC2_IP:8001,PC4_IP:8001"
+      HB_TARGETS: "base-C:8500,PC1_IP:8500,PC2_IP:8500,PC4_IP:8500"
+    ports:
+      - "9001:9001"
+    depends_on:
+      - base-C
+    restart: unless-stopped
+
+  dashboard-C:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: dashboard-C
+    environment:
+      SECTOR_ID: C
+      BASE_DASH_ADDR: "base-C:3001"
+    depends_on:
+      - base-C
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
