@@ -1,8 +1,8 @@
-# 🛸 Sistema Distribuído de Drones — Monitoramento Marítimo no Estreito de Ormuz (PBL 2)
+# 🛸 Sistema Distribuído de Drones — Monitoramento Marítimo no Estreito de Ormuz
 
 Este é um sistema distribuído desenvolvido em **Go** e conteinerizado com **Docker** para gerenciar e coordenar uma frota descentralizada de drones autônomos dedicados ao monitoramento marítimo no Estreito de Ormuz. 
 
-A arquitetura emprega um modelo **P2P (Peer-to-Peer) Descentralizado**, garantindo a ausência de um ponto único de falha (Single Point of Failure - SPOF). A comunicação entre os nós da rede ocorre por meio dos protocolos **TCP** (para dados que exigem confiabilidade) e **UDP** (para detecção rápida de falhas por *heartbeats*), com suporte a sincronização via **Relógio Lógico de Lamport** e exclusão mútua distribuída com o algoritmo **Ricart-Agrawala**.
+A arquitetura emprega um modelo **P2P (Peer-to-Peer) Descentralizado**, garantindo a ausência de um ponto único de falha. A comunicação entre os nós da rede ocorre por meio dos protocolos **TCP** (para dados que exigem confiabilidade) e **UDP** (para detecção rápida de falhas por *heartbeats*), com suporte a sincronização via **Relógio Lógico de Lamport** e exclusão mútua distribuída com o algoritmo **Ricart-Agrawala**.
 
 ---
 
@@ -182,19 +182,3 @@ func generateEvent(n int64) models.Request {
 }
 ```
 
----
-
-## 💡 Cenários Práticos de Testes de Falhas
-
-### Cenário 1: Queda de Base de Setor e Adoção Automática de Drones
-1.  Inicie a simulação local com `run_local.ps1`.
-2.  Verifique no Web Dashboard que o `drone-A1` está registrado na `base-A`.
-3.  Feche a janela de terminal da **`base-A`** (ou finalize seu processo).
-4.  Aguarde 9 segundos (tempo limite para detecção de inatividade UDP pelas bases vizinhas).
-5.  A base sobrevivente (ex: `base-B`) detectará a queda, enviará um comando de herança (`MsgReassign`) para o `drone-A1` e assumirá o controle sobre ele. O `drone-A1` passará a constar sob a gerência da base sobrevivente no painel Web.
-
-### Cenário 2: Ocorrências Concorrentes e Exclusão Mútua
-1.  Verifique a estabilidade da fila e certifique-se de que os drones estão no status `IDLE`.
-2.  Dispare manualmente dois alertas de altíssima prioridade simultaneamente nos sensores em setores distintos.
-3.  Ao receberem as ocorrências, ambas as bases competirão por locks de despacho.
-4.  O algoritmo de Ricart-Agrawala ordenará os lock requests via Relógio Lógico de Lamport e concederá a permissão apenas à base com menor carimbo temporal (ou desempate determinado), garantindo que apenas um drone atenda cada ocorrência por vez.
